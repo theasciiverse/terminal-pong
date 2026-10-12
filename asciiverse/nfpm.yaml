@@ -1,0 +1,33 @@
+# System packages (.deb, .rpm, .apk, Arch) for terminal.pong, built by nfpm
+# from the same static binary as the av archive. The release workflow sets
+# VERSION, RELEASE (our packaging release) and ARCH (amd64 or arm64), and
+# puts the binary at stage/terminal-pong.
+#
+# No .desktop file on purpose: av is the one place titles are started from,
+# so Asciiverse packages never add menu entries (asciiverse/CLAUDE.md).
+name: terminal-pong
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+release: ${RELEASE}
+section: games
+priority: optional
+maintainer: Asciiverse <packages@asciiverse.sh>
+vendor: Asciiverse
+homepage: https://github.com/theasciiverse/terminal-pong
+license: MIT
+description: |
+  Pong in the terminal.
+  Play against the computer, with a friend on the same keyboard, or watch
+  two AIs play. Colour themes, power moves, and a court that fits your
+  window. By IshmamR, packaged by Asciiverse.
+contents:
+  - src: stage/terminal-pong
+    dst: /usr/bin/terminal-pong
+    file_info: { mode: 0755 }
+  - src: LICENSE
+    dst: /usr/share/doc/terminal-pong/copyright
+    file_info: { mode: 0644 }
+  - src: README.md
+    dst: /usr/share/doc/terminal-pong/README.md
+    file_info: { mode: 0644 }

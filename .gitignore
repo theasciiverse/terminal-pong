@@ -1,2 +1,6 @@
 /target
 demo*.gif
+# Asciiverse packaging scratch
+/target-musl/
+/stage/
+/dist/
