@@ -176,6 +176,11 @@ impl Game {
     /// later changes keep them inside the court, so the window can be
     /// resized mid-game.
     pub fn set_area(&mut self, game_area: Rect) {
+        // draw() calls this every frame: only a change of size moves things
+        if game_area.width == self.game_area.width && game_area.height == self.game_area.height {
+            self.game_area = game_area;
+            return;
+        }
         let first = self.game_area.width == 0 || self.game_area.height == 0;
         self.game_area = game_area;
         let inner_width = game_area.width.saturating_sub(3);
@@ -190,8 +195,8 @@ impl Game {
         if first {
             self.ball.position = [inner_width / 2, inner_height / 2];
         }
-        let max_x = inner_width.saturating_sub(DEFAULT_PADDLE_WIDTH + 1).max(DEFAULT_PADDLE_WIDTH);
-        self.ball.position[0] = self.ball.position[0].clamp(DEFAULT_PADDLE_WIDTH, max_x);
+        // keep the ball inside the court; scoring past a paddle stays possible
+        self.ball.position[0] = self.ball.position[0].min(inner_width.saturating_sub(2));
         self.ball.position[1] = self.ball.position[1].min(inner_height.saturating_sub(1));
     }
 
