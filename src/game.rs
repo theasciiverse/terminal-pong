@@ -267,7 +267,8 @@ impl Game {
 
     // key events while paused (pause/options popup)
     fn handle_pause_events(&mut self) -> io::Result<()> {
-        while event::poll(Duration::from_millis(5))? {
+        // a calmer poll while paused: nothing moves, so no need to spin
+        while event::poll(Duration::from_millis(50))? {
             match event::read()? {
                 Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                     match key_event.code {
@@ -739,7 +740,16 @@ impl Game {
         let fps = min_fps + (max_fps - min_fps) * self.difficulty;
         let each_frame = (1000.0 / fps).round() as u64;
 
-        if self.last_update.elapsed() >= Duration::from_millis(each_frame) {
+        // Wait out the rest of this frame: returning early made the caller
+        // redraw thousands of times a second, keeping a core busy and
+        // flooding the terminal. Now the game draws at its own frame rate.
+        let frame_time = Duration::from_millis(each_frame);
+        let elapsed = self.last_update.elapsed();
+        if elapsed < frame_time {
+            std::thread::sleep(frame_time - elapsed);
+        }
+
+        {
             self.handle_events()?;
             if self.should_exit {
                 return Ok(false);
