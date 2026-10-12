@@ -20,8 +20,8 @@ mod game;
 mod game_theme;
 mod helpers;
 use crate::{
-    game::{Game, GameType, PLAYER_NAME_CHAR_LEN},
-    helpers::{centered_rect, centered_rect_with_percentage},
+    game::{Game, GameType, MIN_COLS, MIN_ROWS, PLAYER_NAME_CHAR_LEN},
+    helpers::centered_rect_with_percentage,
 };
 
 #[derive(Debug)]
@@ -89,8 +89,8 @@ impl App {
         let mut last_size: u8 = 0; // 0 -> too small | 1 -> normal
 
         while !self.exit {
-            let min_width = 130;
-            let min_height = 28;
+            let min_width = MIN_COLS;
+            let min_height = MIN_ROWS;
 
             let size = terminal.size()?;
             if size.width < min_width || size.height < min_height {
@@ -101,13 +101,9 @@ impl App {
                 self.handle_events()?;
                 terminal.draw(|frame| self.show_terminal_resize_warning(frame))?;
             } else {
+                // the game sets its court from the window on every frame
                 if last_size == 0 {
                     sleep(Duration::from_millis(100));
-                    let game_area = centered_rect(130, 28, size.width, size.height);
-                    match self.current_game.as_mut() {
-                        Some(game) => game.set_area(game_area),
-                        None => {}
-                    }
                     last_size = 1;
                 }
 

@@ -6,7 +6,7 @@ use std::{
 };
 
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::Style,
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
@@ -24,6 +24,12 @@ const DEFAULT_BALL_VELOCITY_Y: i8 = 1;
 const DEFAULT_PADDLE_WIDTH: u16 = 3;
 const STARTING_POWER_MOVES: u8 = 10;
 const DEFAULT_DIFFICULTY: f32 = 1.0;
+/// The court fills the window, down to this size (columns x rows, controls
+/// line included); main.rs shows "Terminal too small!" below it.
+pub const MIN_COLS: u16 = 70;
+pub const MIN_ROWS: u16 = 20;
+/// Rows below the court for the controls line.
+const CONTROLS_ROWS: u16 = 3;
 
 #[derive(Debug, Clone, Copy)]
 struct ComputerAI {
@@ -165,8 +171,28 @@ impl Game {
         self.game_area
     }
 
+    /// Sets the court, which follows the window. The first real area
+    /// centres the paddles and the ball (a game starts with an empty one);
+    /// later changes keep them inside the court, so the window can be
+    /// resized mid-game.
     pub fn set_area(&mut self, game_area: Rect) {
+        let first = self.game_area.width == 0 || self.game_area.height == 0;
         self.game_area = game_area;
+        let inner_width = game_area.width.saturating_sub(3);
+        let inner_height = game_area.height.saturating_sub(2);
+        for player in self.players.iter_mut() {
+            let max_pos = inner_height.saturating_sub(player.bar_length as u16);
+            if first {
+                player.bar_position = max_pos / 2;
+            }
+            player.bar_position = player.bar_position.min(max_pos);
+        }
+        if first {
+            self.ball.position = [inner_width / 2, inner_height / 2];
+        }
+        let max_x = inner_width.saturating_sub(DEFAULT_PADDLE_WIDTH + 1).max(DEFAULT_PADDLE_WIDTH);
+        self.ball.position[0] = self.ball.position[0].clamp(DEFAULT_PADDLE_WIDTH, max_x);
+        self.ball.position[1] = self.ball.position[1].min(inner_height.saturating_sub(1));
     }
 
     pub fn get_player(&self, index: usize) -> &Player {
@@ -613,20 +639,14 @@ impl Game {
         let area = frame.area();
         let colors = self.theme.colors();
 
-        let main_layout = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Length(130)])
-            .flex(Flex::Center)
-            .split(area);
-
+        // the court fills the window, the controls line sits below it
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
-                Constraint::Length(28), // game block
-                Constraint::Length(3),  // controls block
+                Constraint::Length(area.height.saturating_sub(CONTROLS_ROWS)), // game block
+                Constraint::Length(CONTROLS_ROWS),                            // controls block
             ])
-            .flex(Flex::Center)
-            .split(main_layout[0]);
+            .split(area);
 
         let game_area = layout[0];
         self.set_area(game_area);
@@ -642,7 +662,11 @@ impl Game {
 
         self.draw_core_elements(frame);
 
-        let controls_text = " Player 1: ↑/↓ or mouse wheel, '/'=Power    |    Player 2: W/S, Space=Power    |    P=Pause    |    Esc=Quit ";
+        let controls_text = if layout[1].width >= 110 {
+            " Player 1: ↑/↓ or mouse wheel, '/'=Power    |    Player 2: W/S, Space=Power    |    P=Pause    |    Esc=Quit "
+        } else {
+            " P1: ↑/↓ '/'=Power | P2: W/S Space=Power | P=Pause | Esc=Quit "
+        };
         let controls = Paragraph::new(controls_text)
             .block(
                 Block::default()
@@ -748,11 +772,13 @@ impl Game {
         let mut computer_text = player2.name.iter().collect::<String>();
         computer_text += &format!("({})", player2.score);
 
-        let padding_left: u16 = 32;
-        let padding_right: u16 = 32;
-
-        let total_padding = padding_left + padding_right + app_name.len() as u16;
-        let available_space = 130 - total_padding;
+        // fill the court's top border: names, scores and the app name, with
+        // dashes between them, whatever the width
+        let used = player_text.trim_end().chars().count()
+            + computer_text.trim_start().chars().count()
+            + app_name.trim_end().chars().count()
+            + 6;
+        let available_space = (self.game_area.width as usize).saturating_sub(used + 2) as u16;
 
         format!(
             " {} {} {} {} {} ",
