@@ -1,3 +1,16 @@
+> **Play it with Asciiverse.** With [av](https://asciiverse.sh), the Asciiverse
+> client:
+>
+> ```
+> av install terminal-pong
+> av play terminal-pong
+> ```
+>
+> Or download the archive for your system from this repository's Releases,
+> unpack it and run `./terminal-pong` (`terminal-pong.exe` on Windows).
+>
+> The original README follows.
+
 # Terminal Ping Pong 🏓
 
 A simple, fun ping pong game playable entirely in your terminal. Built with Rust and powered by [`ratatui`](https://crates.io/crates/ratatui) for a beautifully responsive TUI (Text User Interface).
